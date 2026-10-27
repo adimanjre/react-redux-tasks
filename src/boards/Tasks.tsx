@@ -4,21 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { TaskCard } from "./TaskCard";
 import FilterBar from "./FilterBar";
 import { increment } from "../counterSlice";
-
-const rank = {
-  low: 0,
-  medium: 1,
-  high: 2,
-};
+import { selectTaskCount, selectVisibleTasks } from "./selectors";
 
 const Tasks = () => {
   const [title, setTitle] = useState<string>("");
   const [priority, setPriority] = useState<Task["priority"]>("low");
   const tasks = useAppSelector((state) => state.tasks.items);
-  const currentStatus = useAppSelector((state) => state.filters.status);
-  const searchQuery = useAppSelector((state) => state.filters.search);
-  const sortBy = useAppSelector((state) => state.filters.sortBy);
-  const orderBy = useAppSelector((state) => state.filters.sortDir);
   const dispatch = useAppDispatch();
   const counter = useRef(0);
   useEffect(() => {
@@ -32,52 +23,9 @@ const Tasks = () => {
     }
   };
 
-  const filteredTasks =
-    currentStatus === "all"
-      ? tasks
-      : tasks.filter((task) => task.status === currentStatus);
+  const sortedByTasks = useAppSelector(selectVisibleTasks);
 
-  const searchTasks = searchQuery
-    ? filteredTasks.filter((task) =>
-        task.title.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : filteredTasks;
-
-  const sortedByTasks = [...searchTasks];
-  switch (sortBy) {
-    case "priority":
-      sortedByTasks.sort((a, b) => {
-        return orderBy === "asc"
-          ? rank[a.priority] - rank[b.priority]
-          : rank[b.priority] - rank[a.priority];
-      });
-      break;
-    case "title":
-      sortedByTasks.sort((a, b) => {
-        if (a.title < b.title) {
-          return orderBy === "asc" ? -1 : 1;
-        }
-        if (a.title > b.title) {
-          return orderBy === "asc" ? 1 : -1;
-        }
-        return 0;
-      });
-      break;
-    case "createdAt":
-      sortedByTasks.sort((a, b) => {
-        return orderBy === "asc"
-          ? a.createdAt - b.createdAt
-          : b.createdAt - a.createdAt;
-      });
-      break;
-    default:
-      break;
-  }
-
-  const completedTask = useAppSelector((state) =>
-    state.tasks.items.filter((t) => t.status === "done"),
-  ).length;
-  const totalTask = tasks.length;
+  const { total, done } = useAppSelector(selectTaskCount);
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -132,7 +80,7 @@ const Tasks = () => {
               Your Tasks
             </span>
             <span className="text-xs font-medium text-slate-500">
-              {completedTask}/{totalTask}
+              {done}/{total}
             </span>
             <button
               onClick={() => dispatch(completedCleared())}
